@@ -1,0 +1,443 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Statistik Indeks TIK — Dashboard Interaktif</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --bg-start:#e6f0ff; --bg-end:#ffffff; --card:#ffffff; --muted:#475569; --accent:#2563eb; --accent-2:#06b6d4;
+      --glass: rgba(2,6,23,0.03);
+    }
+    *{box-sizing:border-box}
+    body{font-family:Inter,Segoe UI,Roboto,Arial,sans-serif;margin:0;background:linear-gradient(180deg,var(--bg-start) 0%, var(--bg-end) 70%);color:#0b2440;min-height:100vh}
+    .wrap{max-width:1200px;margin:28px auto;padding:22px}
+    header{display:flex;align-items:center;gap:16px}
+    .logo{width:56px;height:56px;border-radius:12px;background:linear-gradient(135deg,var(--accent-2),var(--accent));display:flex;align-items:center;justify-content:center;font-weight:700;color:white}
+    h1{margin:0;font-size:20px}
+    .subtitle{color:var(--muted);font-size:13px;margin-top:6px}
+    .controls{display:flex;gap:10px;margin-top:18px;flex-wrap:wrap}
+  .btn{background:linear-gradient(90deg,var(--accent),var(--accent-2));border:none;padding:8px 12px;border-radius:8px;color:#fff;font-weight:600;cursor:pointer;box-shadow:0 8px 20px rgba(37,99,235,0.08)}
+  .btn.ghost{background:transparent;border:1px solid rgba(37,99,235,0.08);color:var(--muted);box-shadow:none}
+    .grid{display:grid;grid-template-columns:1fr 360px;gap:18px;margin-top:18px}
+  .card{background:var(--card);padding:14px;border-radius:12px;border:1px solid rgba(2,6,23,0.04);box-shadow:0 8px 26px rgba(37,99,235,0.06)}
+    .summary{display:flex;gap:10px;flex-wrap:wrap}
+  .sum-card{background:var(--bg-start);padding:10px;border-radius:10px;min-width:150px}
+    canvas{background:transparent}
+  table{width:100%;border-collapse:collapse;margin-top:10px;color:#0b2440}
+    th,td{padding:8px 6px;text-align:left}
+    thead th{color:var(--muted);font-size:13px}
+    tbody tr{border-top:1px solid rgba(255,255,255,0.02)}
+    input[type=text].search{background:transparent;border:1px solid rgba(255,255,255,0.04);padding:8px;border-radius:8px;color:inherit}
+  .muted{color:var(--muted);font-size:13px}
+    .footer{margin-top:16px;color:var(--muted);font-size:13px}
+    .hot{color:#fff7ed;background:#7c2d12;padding:6px 8px;border-radius:8px;font-weight:600}
+    .editable{background:rgba(255,255,255,0.02);padding:6px;border-radius:6px}
+  .fade-in{animation:fadeIn 600ms ease both}
+    @keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+    @media(max-width:980px){.grid{grid-template-columns:1fr}}
+  </style>
+</head>
+<body>
+  <div class="wrap fade-in">
+    <header>
+      <div class="logo">TIK</div>
+      <div>
+        <h1>Dashboard Indeks Pembangunan TIK — Indonesia</h1>
+        <div class="subtitle">Interaktif • Unggah CSV • Muat data artikel • Edit nilai langsung</div>
+      </div>
+    </header>
+
+    <div class="controls">
+      <select id="viewSelect" class="editable">
+        <option value="bar">Bar Provinsi</option>
+        <option value="horizontal">Bar Horizontal</option>
+        <option value="pie">Kategori</option>
+      </select>
+      <input id="searchInput" class="search" placeholder="Cari provinsi..." />
+      <input id="fileInput" type="file" accept="text/csv" class="ghost btn" />
+      <button id="downloadBtn" class="btn">Unduh CSV</button>
+      <button id="loadArticleBtn" class="btn">Muat data artikel</button>
+      <button id="resetBtn" class="btn ghost">Reset</button>
+    </div>
+
+    <!-- Pendahuluan & Penjelasan Data -->
+    <div class="card" style="margin-top:14px">
+      <h3 style="margin-top:0">Pendahuluan & Penjelasan Data</h3>
+      <p class="muted">Indeks Pembangunan Teknologi Informasi dan Komunikasi (TIK) digunakan untuk mengukur perkembangan infrastruktur, penggunaan, dan keahlian TIK di tiap provinsi. Indeks pada dashboard ini disusun mengikuti ringkasan artikel Kumparan yang mengutip BPS (ID: 2022).</p>
+      <h4 style="margin:8px 0 6px 0">Apa yang diukur</h4>
+      <ul class="muted">
+        <li><strong>Akses/Infrastruktur:</strong> ketersediaan jaringan, infrastruktur dasar, dan ketersediaan layanan.</li>
+        <li><strong>Penggunaan TIK:</strong> tingkat pemanfaatan internet, layanan digital, dan aplikasi oleh masyarakat.</li>
+        <li><strong>Keahlian:</strong> kemampuan SDM menggunakan dan memanfaatkan teknologi (keterampilan digital).</li>
+      </ul>
+      <h4 style="margin:8px 0 6px 0">Penjelasan statistik</h4>
+      <div class="muted">
+        <strong>Mean (rata-rata)</strong>: rata-rata indeks dari semua provinsi. Berguna melihat level umum pembangunan TIK.
+        <br><strong>Median</strong>: nilai tengah setelah data diurutkan; lebih tahan terhadap pencilan.
+        <br><strong>Modus</strong>: nilai yang paling sering muncul; jika tidak ada nilai yang dominan, modus ditampilkan sebagai '—'.
+        <br><strong>Simpangan baku</strong>: ukuran sebaran data; semakin besar, semakin besar variasi antar provinsi.
+      </div>
+      <p class="muted" style="margin-top:8px">Gunakan fitur pencarian, edit cepat, dan unggah CSV untuk mengeksplorasi data lebih lanjut. Tombol "Muat data artikel" akan memuat angka-angka yang disebut dalam artikel sebagai dataset contoh.</p>
+    </div>
+
+    <div class="grid">
+      <main>
+        <div class="card">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <div>
+              <div class="muted">Visualisasi</div>
+              <h2 style="margin:6px 0 0 0">Indeks TIK per Provinsi (2022)</h2>
+            </div>
+            <div class="muted">Sumber: BPS / Ringkasan Kumparan</div>
+          </div>
+
+          <div style="height:360px;margin-top:14px">
+            <canvas id="mainChart"></canvas>
+          </div>
+
+          <div class="summary" style="margin-top:14px">
+            <div class="sum-card">
+              <div class="muted">Rata-rata nasional</div>
+              <div style="font-size:18px;font-weight:700">5.85</div>
+            </div>
+            <div class="sum-card">
+              <div class="muted">Mean (rata-rata dataset)</div>
+              <div style="font-size:16px" id="meanVal">—</div>
+            </div>
+            <div class="sum-card">
+              <div class="muted">Median</div>
+              <div style="font-size:16px" id="medianVal">—</div>
+            </div>
+            <div class="sum-card">
+              <div class="muted">Modus</div>
+              <div style="font-size:16px" id="modeVal">—</div>
+            </div>
+            <div class="sum-card">
+              <div class="muted">Simpangan baku</div>
+              <div style="font-size:16px" id="stdVal">—</div>
+            </div>
+            <div class="sum-card" id="maxCard">
+              <div class="muted">Prov. tertinggi</div>
+              <div style="font-size:16px" id="maxCardVal">—</div>
+            </div>
+            <div class="sum-card" id="minCard">
+              <div class="muted">Prov. terendah</div>
+              <div style="font-size:16px" id="minCardVal">—</div>
+            </div>
+            <div class="sum-card">
+              <div class="muted">Prov. di bawah rata-rata</div>
+              <div id="belowCount">—</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card" style="margin-top:14px">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <div><h3 style="margin:0">Daftar Provinsi</h3><div class="muted">Klik nilai untuk edit cepat</div></div>
+            <div><button id="copyJson" class="btn ghost">Salin JSON</button></div>
+          </div>
+          <div style="overflow:auto;max-height:320px;margin-top:10px">
+            <table id="dataTable">
+              <thead><tr><th>Provinsi</th><th>Indeks</th></tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="card" style="margin-top:14px">
+          <h3 style="margin-top:0">Semua Data dari Artikel (ringkasan)</h3>
+          <div class="muted">Sumber: Kumparan (BPS, APJII). Beberapa angka demo ditambahkan untuk pelengkap visual.</div>
+          <pre id="articleRaw" style="background:transparent;border-radius:8px;padding:8px;margin-top:8px;color:var(--muted);max-height:200px;overflow:auto"></pre>
+          <div id="articleSummary" style="margin-top:8px;background:rgba(255,255,255,0.02);padding:10px;border-radius:8px;color:#fff"></div>
+        </div>
+      </main>
+
+      <aside>
+        <div class="card">
+          <h4 style="margin-top:0">Filter & Aksi Cepat</h4>
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <button id="highlightJakarta" class="btn ghost">Sorot DKI Jakarta</button>
+            <button id="highlightPapua" class="btn ghost">Sorot Papua</button>
+            <button id="downloadReport" class="btn">Cetak Ringkasan (PDF)</button>
+          </div>
+        </div>
+
+        <div class="card" style="margin-top:12px" id="advancedOptionsCard">
+          <h4 style="margin-top:0">Opsi Lanjutan</h4>
+          <div class="muted" style="font-size:13px;margin-bottom:8px">Sesuaikan tampilan dan ekspor data cepat.</div>
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <label class="muted">Tema: <select id="themeSelect"><option value="bright">Default (Cerah)</option><option value="dark">Gelap</option></select></label>
+            <label class="muted">Batas kategori (Rendah / Sedang / Tinggi)</label>
+            <div style="display:flex;gap:6px;align-items:center">
+              <input id="mediumLowerInput" type="number" step="0.01" style="width:100px;padding:6px;border-radius:6px;border:1px solid #e6eefc" title="Batas bawah kategori sedang (contoh: 5.01)" />
+              <input id="mediumUpperInput" type="number" step="0.01" style="width:100px;padding:6px;border-radius:6px;border:1px solid #e6eefc" title="Batas atas kategori sedang (contoh: 7.50)" />
+              <button id="applyThresholds" class="btn ghost" style="padding:6px 8px">Terapkan</button>
+            </div>
+
+            <div style="display:flex;gap:8px">
+              <button id="exportPNGBtn" class="btn">Ekspor Grafik (PNG)</button>
+              <button id="exportMediumCSVBtn" class="btn ghost">Ekspor 'Sedang' (CSV)</button>
+            </div>
+
+            <label style="font-size:13px" class="muted"><input id="showSubindices" type="checkbox" /> Tampilkan subindeks (jika tersedia)</label>
+            <div class="muted" style="font-size:12px">Catatan: fitur subindeks menampilkan ringkasan jika data artikel dimuat.</div>
+          </div>
+        </div>
+
+        <div class="card" style="margin-top:12px">
+          <h4 style="margin-top:0">Statistik Cepat</h4>
+          <div class="muted">Jumlah provinsi</div>
+          <div id="countProv" style="font-weight:700;margin-top:4px">—</div>
+          <div class="muted" style="margin-top:8px">Kategori (Tinggi/Sedang/Rendah)</div>
+          <div id="catCount" style="margin-top:6px">—</div>
+        </div>
+
+        <div class="card" style="margin-top:12px">
+          <h4 style="margin-top:0">Provinsi Kategori Sedang (5.01–7.50)</h4>
+          <div id="mediumList" class="muted" style="margin-top:6px;line-height:1.5">—</div>
+        </div>
+
+        <div class="card" style="margin-top:12px">
+          <h4 style="margin-top:0">Panduan Singkat</h4>
+          <div class="muted">Unggah CSV (Province,Index). Klik nilai pada tabel untuk edit. Gunakan tombol "Muat data artikel" untuk memuat angka yang disebutkan di artikel.</div>
+        </div>
+      </aside>
+    </div>
+
+    <div class="footer">Catatan: Data contoh diambil dari ringkasan artikel — untuk publikasi resmi gunakan dataset BPS.</div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script>
+    // Core data (same as before)
+    const sampleData = [
+      {province: 'DKI Jakarta', index: 7.64},
+      {province: 'DI Yogyakarta', index: 7.25},
+      {province: 'Bali', index: 6.5},
+      {province: 'Kepulauan Riau', index: 6.69},
+      {province: 'Kalimantan Timur', index: 6.6},
+      {province: 'Kalimantan Utara', index: 6.41},
+      {province: 'Banten', index: 6.29},
+      {province: 'Riau', index: 6.02},
+      {province: 'Sumatera Barat', index: 6.01},
+      {province: 'Sulawesi Utara', index: 5.9},
+      {province: 'Jawa Timur', index: 5.91},
+      {province: 'Bengkulu', index: 5.95},
+      {province: 'Jawa Barat', index: 6.0},
+      {province: 'Jawa Tengah', index: 5.9},
+      {province: 'Nusa Tenggara Timur', index: 5.13},
+      {province: 'Papua', index: 3.22},
+      {province: 'Bangka Belitung', index: 5.4},
+      {province: 'Jambi', index: 5.2},
+      {province: 'Kalimantan Tengah', index: 5.1},
+      {province: 'Sulawesi Tenggara', index: 5.0},
+      {province: 'Maluku', index: 4.9},
+      {province: 'Sumatera Selatan', index: 5.3},
+      {province: 'Lampung', index: 5.3},
+      {province: 'Gorontalo', index: 5.0},
+      {province: 'Aceh', index: 4.8},
+      {province: 'Sulawesi Tengah', index: 4.9},
+      {province: 'Nusa Tenggara Barat', index: 5.2},
+      {province: 'Kalimantan Barat', index: 5.1},
+      {province: 'Papua Barat', index: 4.7},
+      {province: 'Sulawesi Barat', index: 4.6},
+      {province: 'Maluku Utara', index: 4.8}
+    ];
+
+    let current = JSON.parse(JSON.stringify(sampleData));
+    let chart = null;
+
+  // Advanced option defaults (adjustable)
+  let thresh = { mediumLower: 5.01, mediumUpper: 7.50 }; // inclusive for medium
+  let uiTheme = 'bright';
+
+    const articleData = {
+      source: 'Kumparan (mengutip BPS, APJII)',
+      nationalAverage2022: 5.85,
+      gapBetweenMaxMin2021: 4.31,
+      gapBetweenMaxMin2022: 4.41,
+      provinces: [
+        {province: 'DKI Jakarta', index: 7.64, sub: {infrastruktur:8.27, penggunaan:7.54, keahlian:6.57}},
+        {province: 'DI Yogyakarta', index: 7.25, sub: {infrastruktur:8.01, penggunaan:7.54, keahlian:7.77}},
+        {province: 'Nusa Tenggara Timur', index: 5.13, sub: {infrastruktur:5.48, penggunaan:5.73, keahlian:5.73}},
+        {province: 'Papua', index: 3.22, sub: {infrastruktur:3.38, penggunaan:5.38, keahlian:5.73}}
+      ],
+      apjii: {totalUsers2022_2023:215.63, penetrationPct:78.19, previousUsers:210.03, increasePct:2.67, byIsland:{Bali:80.88,NusaTenggara:72.32,Kalimantan:78.71,Sulawesi:73.59,Maluku:73.45,Papua:63.15}},
+      belowAverageProvinces: ['Bangka Belitung','Jambi','Kalimantan Tengah','Sulawesi Tenggara','Maluku','Sumatera Selatan','Lampung','Gorontalo','Aceh','Sulawesi Tengah','Nusa Tenggara Barat','Kalimantan Barat','Papua Barat','Sulawesi Barat','Maluku Utara','Nusa Tenggara Timur','Papua']
+    };
+
+    function computeStats(data){
+      const values = data.map(d=>d.index).filter(v=>!isNaN(v));
+      if(!values.length) return null;
+      const n = values.length;
+      const sum = values.reduce((a,b)=>a+b,0);
+      const mean = sum/n;
+      const sorted = values.slice().sort((a,b)=>a-b);
+      const median = (n%2?sorted[(n-1)/2]:(sorted[n/2-1]+sorted[n/2])/2);
+      const min = sorted[0], max = sorted[sorted.length-1];
+      const variance = values.reduce((a,b)=>a+Math.pow(b-mean,2),0)/n;
+      const std = Math.sqrt(variance);
+      // compute mode(s)
+      const freq = {};
+      values.forEach(v=>{ const key = Number(v.toFixed(2)); freq[key] = (freq[key]||0)+1; });
+      let maxf = 0; for(const k in freq) if(freq[k]>maxf) maxf = freq[k];
+      const modes = Object.keys(freq).filter(k=>freq[k]===maxf).map(k=>Number(k));
+      const mode = (modes.length===values.length)? null : modes.length===1? modes[0] : modes; // if all values equally frequent -> no mode
+      const cat = {high: data.filter(d=>d.index>thresh.mediumUpper).length, medium: data.filter(d=>d.index>=thresh.mediumLower && d.index<=thresh.mediumUpper).length, low: data.filter(d=>d.index<thresh.mediumLower).length};
+      return {n,mean,median,min,max,std,variance,mode,cat};
+    }
+
+    function colorForValue(v){
+      if(v>thresh.mediumUpper) return '#8b5cf6';
+      if(v>=thresh.mediumLower) return '#06b6d4';
+      return '#fb923c';
+    }
+
+    function makeChart(view){
+      const ctx = document.getElementById('mainChart').getContext('2d'); if(chart) chart.destroy();
+      const labels = current.map(d=>d.province); const values = current.map(d=>d.index);
+      const bg = values.map(colorForValue);
+      if(view==='pie'){
+        const s = computeStats(current);
+        chart = new Chart(ctx,{type:'pie',data:{labels:['Tinggi','Sedang','Rendah'],datasets:[{data:[s.cat.high,s.cat.medium,s.cat.low],backgroundColor:['#8b5cf6','#06b6d4','#fb923c']}]},options:{plugins:{legend:{position:'bottom'}}}});
+      } else {
+        chart = new Chart(ctx,{type:'bar',data:{labels,datasets:[{label:'Indeks TIK',data:values,backgroundColor:bg}]},options:{indexAxis:view==='horizontal'?'y':'x',scales:{x:{beginAtZero:true,max:10},y:{beginAtZero:true}},plugins:{legend:{display:false}}}});
+      }
+    }
+
+    function renderTable(data){
+      const tbody=document.querySelector('#dataTable tbody'); tbody.innerHTML='';
+      data.forEach((d, i)=>{
+        const tr=document.createElement('tr');
+        const td0=document.createElement('td'); td0.textContent=d.province; td0.style.fontWeight=600; td0.style.minWidth='160px';
+        const td1=document.createElement('td'); td1.textContent=(isNaN(d.index)?'':d.index.toFixed(2)); td1.className='editable'; td1.contentEditable=true; td1.addEventListener('input', ()=>{ const v=parseFloat(td1.textContent.replace(',','.')); d.index=isNaN(v)?null:v; updateAll(); });
+        tr.appendChild(td0); tr.appendChild(td1); tbody.appendChild(tr);
+      });
+    }
+
+    function updateSummaries(stats){
+      if(!stats) return;
+      document.getElementById('maxCardVal').textContent = current.reduce((a,b)=> a.index>b.index?a:b).province + ' ('+stats.max.toFixed(2)+')';
+      document.getElementById('minCardVal').textContent = current.reduce((a,b)=> a.index<b.index?a:b).province + ' ('+stats.min.toFixed(2)+')';
+      document.getElementById('belowCount').textContent = current.filter(d=>d.index < stats.mean).length;
+      document.getElementById('countProv').textContent = stats.n; document.getElementById('catCount').textContent = `${stats.cat.high} / ${stats.cat.medium} / ${stats.cat.low}`;
+      // detailed stats
+      document.getElementById('meanVal').textContent = stats.mean.toFixed(2);
+      document.getElementById('medianVal').textContent = stats.median.toFixed(2);
+      document.getElementById('stdVal').textContent = stats.std.toFixed(2);
+      const modeEl = document.getElementById('modeVal');
+      if(stats.mode === null) modeEl.textContent = '—';
+      else if(Array.isArray(stats.mode)) modeEl.textContent = stats.mode.map(m=>m.toFixed(2)).join(', ');
+      else modeEl.textContent = stats.mode.toFixed(2);
+    }
+
+    function updateAll(){
+      const stats=computeStats(current);
+      renderTable(current);
+      makeChart(document.getElementById('viewSelect').value);
+      updateSummaries(stats);
+      // render medium category list
+      const medium = current.filter(d=>!isNaN(d.index) && d.index>=thresh.mediumLower && d.index<=thresh.mediumUpper).map(d=>d.province + ' ('+d.index.toFixed(2)+')');
+      const mEl = document.getElementById('mediumList');
+      mEl.innerHTML = '';
+      if(medium.length){
+        medium.forEach((label, i)=>{
+          const span = document.createElement('div'); span.textContent = label; span.style.cursor='pointer'; span.style.padding='4px 0'; span.addEventListener('click', ()=>{ highlightProvinceByName(current.find(c=>label.startsWith(c.province)).province); }); mEl.appendChild(span);
+        });
+      } else { mEl.textContent = 'Tidak ada provinsi di kategori sedang.'; }
+      document.getElementById('articleRaw').textContent = JSON.stringify(articleData,null,2);
+      document.getElementById('articleSummary').textContent = `Parafrase: Berdasarkan BPS, Indeks TIK nasional 2022 = ${articleData.nationalAverage2022}. Namun celah antar provinsi melebar (selisih ${articleData.gapBetweenMaxMin2022}). Provinsi tertinggi: DKI Jakarta (${articleData.provinces[0].index}). Terendah: Papua (${articleData.provinces[3].index}).`;
+    }
+
+    // CSV utilities
+    function downloadSampleCSV(){
+      const header='Province,Index\n'; const rows = current.map(d=>`"${d.province}",${d.index}`); const csv = header + rows.join('\n');
+      const blob = new Blob([csv],{type:'text/csv'}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='tik_provinsi_sample.csv'; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+    }
+
+    function parseCSV(text){
+      const lines = text.split(/\r?\n/).filter(l=>l.trim()); if(lines.length<2) return [];
+      const header = lines[0].toLowerCase(); const idxP = header.split(',').findIndex(h=>/prov|province|provinsi/.test(h)); const idxI = header.split(',').findIndex(h=>/index|indeks|score|nilai/.test(h));
+      if(idxP<0||idxI<0) return [];
+      const out=[]; for(let i=1;i<lines.length;i++){ const cols = lines[i].split(/,(?=(?:[^"]*"[^"]*")*[^"]*$)/).map(c=>c.replace(/^"|"$/g,'')); const prov=cols[idxP]; const val=parseFloat(cols[idxI].replace(',','.')); if(prov) out.push({province:prov,index:isNaN(val)?null:val}); }
+      return out;
+    }
+
+    document.getElementById('downloadBtn').addEventListener('click', downloadSampleCSV);
+    document.getElementById('resetBtn').addEventListener('click', ()=>{ current = JSON.parse(JSON.stringify(sampleData)); updateAll(); });
+    document.getElementById('viewSelect').addEventListener('change', ()=> makeChart(document.getElementById('viewSelect').value));
+    document.getElementById('fileInput').addEventListener('change', (e)=>{ const f=e.target.files[0]; if(!f) return; const r=new FileReader(); r.onload=()=>{ const parsed=parseCSV(r.result); if(!parsed.length){ alert('CSV tidak valid. Pastikan header berisi Province dan Index.'); return;} current=parsed; updateAll(); }; r.readAsText(f); });
+    document.getElementById('loadArticleBtn').addEventListener('click', ()=>{ const art = articleData.provinces.map(p=>({province:p.province,index:p.index})); articleData.belowAverageProvinces.forEach(name=>{ if(!art.find(a=>a.province===name)){ const f=sampleData.find(s=>s.province===name); art.push({province:name,index: f?f.index:5.0}); }}); current = art.concat(sampleData.filter(s=>!art.find(a=>a.province===s.province))); updateAll(); alert('Data artikel dimuat.'); });
+    document.getElementById('copyJson').addEventListener('click', ()=> navigator.clipboard.writeText(JSON.stringify(current,null,2)).then(()=>alert('Disalin')));
+    document.getElementById('highlightJakarta').addEventListener('click', ()=>{ const i=current.find(c=>/jakarta/i.test(c.province)); if(i) alert(`DKI Jakarta: ${i.index}`); else alert('DKI Jakarta tidak ditemukan'); });
+    document.getElementById('highlightPapua').addEventListener('click', ()=>{ const i=current.find(c=>/^Papua$/i.test(c.province)); if(i) alert(`Papua: ${i.index}`); else alert('Papua tidak ditemukan'); });
+
+    // Advanced options wiring
+    function applyTheme(name){
+      uiTheme = name;
+      if(name==='dark'){
+        document.documentElement.style.setProperty('--bg-start','#0b1220');
+        document.documentElement.style.setProperty('--bg-end','#071021');
+        document.documentElement.style.setProperty('--card','#071021');
+        document.documentElement.style.setProperty('--muted','#9fb3d9');
+        document.documentElement.style.setProperty('--accent','#0ea5ff');
+        document.documentElement.style.setProperty('--accent-2','#7c3aed');
+      } else {
+        document.documentElement.style.setProperty('--bg-start','#e6f0ff');
+        document.documentElement.style.setProperty('--bg-end','#ffffff');
+        document.documentElement.style.setProperty('--card','#ffffff');
+        document.documentElement.style.setProperty('--muted','#475569');
+        document.documentElement.style.setProperty('--accent','#2563eb');
+        document.documentElement.style.setProperty('--accent-2','#06b6d4');
+      }
+    }
+
+    document.getElementById('themeSelect').addEventListener('change', (e)=>{ applyTheme(e.target.value); });
+
+    document.getElementById('applyThresholds').addEventListener('click', ()=>{
+      const low = parseFloat(document.getElementById('mediumLowerInput').value);
+      const up = parseFloat(document.getElementById('mediumUpperInput').value);
+      if(isNaN(low) || isNaN(up) || low>=up){ alert('Masukkan batas yang valid (lower < upper).'); return; }
+      thresh.mediumLower = low; thresh.mediumUpper = up; updateAll();
+      alert(`Batas kategori diperbarui: Sedang ${low}–${up}`);
+    });
+
+    document.getElementById('exportPNGBtn').addEventListener('click', ()=>{
+      const c = document.getElementById('mainChart');
+      const url = c.toDataURL('image/png'); const a=document.createElement('a'); a.href=url; a.download='chart_tik.png'; document.body.appendChild(a); a.click(); a.remove();
+    });
+
+    document.getElementById('exportMediumCSVBtn').addEventListener('click', ()=>{
+      const rows = current.filter(d=>!isNaN(d.index) && d.index>=thresh.mediumLower && d.index<=thresh.mediumUpper).map(d=>`"${d.province}",${d.index}`);
+      if(!rows.length){ alert('Tidak ada provinsi di kategori sedang.'); return; }
+      const csv = 'Province,Index\n' + rows.join('\n'); const blob=new Blob([csv],{type:'text/csv'}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='provinsi_sedang.csv'; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+    });
+
+    document.getElementById('showSubindices').addEventListener('change', (e)=>{
+      if(e.target.checked){ if(articleData && articleData.provinces) alert('Subindeks tersedia untuk beberapa provinsi. Muat data artikel untuk melihat detail di ringkasan.'); }
+    });
+
+    function highlightProvinceByName(name){
+      // visually highlight and show an alert with details
+      const tr = Array.from(document.querySelectorAll('#dataTable tbody tr')).find(r=>r.cells[0].textContent===name);
+      if(tr){ tr.style.background='linear-gradient(90deg, rgba(37,99,235,0.06), rgba(6,182,212,0.03))'; setTimeout(()=>tr.style.background='',1400); }
+      const item = current.find(c=>c.province===name);
+      if(item) alert(`${item.province}: ${item.index}`);
+    }
+
+    // search
+    document.getElementById('searchInput').addEventListener('input', (e)=>{ const q=e.target.value.toLowerCase(); const rows=document.querySelectorAll('#dataTable tbody tr'); rows.forEach(tr=>{ tr.style.display = tr.cells[0].textContent.toLowerCase().includes(q)?'':'none'; }); });
+
+    // initialize advanced UI values
+    document.getElementById('mediumLowerInput').value = thresh.mediumLower;
+    document.getElementById('mediumUpperInput').value = thresh.mediumUpper;
+    document.getElementById('themeSelect').value = uiTheme;
+    applyTheme(uiTheme);
+
+    // initial render
+    updateAll();
+  </script>
+</body>
+</html>
